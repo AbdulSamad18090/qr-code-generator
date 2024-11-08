@@ -1,20 +1,19 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
-import QRCode from 'qrcode'
+import { useState, useEffect } from 'react'
+import ReactQRCode from 'react-qr-code'
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent } from "@/components/ui/card"
 import { Slider } from "@/components/ui/slider"
-import { Download, Share2, Link, Palette, Maximize2 } from 'lucide-react'
+import { Download, Share2, Link, Maximize2 } from 'lucide-react'
 
 export default function QRCodeGenerator() {
   const [text, setText] = useState('')
   const [size, setSize] = useState(256)
   const [color, setColor] = useState('#000000')
   const [bgColor, setBgColor] = useState('#ffffff')
-  const [qrCodeSrc, setQrCodeSrc] = useState('')
 
   useEffect(() => {
     document.body.style.backgroundColor = '#f0f0f0'
@@ -23,30 +22,15 @@ export default function QRCodeGenerator() {
     }
   }, [])
 
-  useEffect(() => {
-    generateQRCode()
-  }, [text, size, color, bgColor])
-
-  const generateQRCode = async () => {
-    try {
-      // Adjusted color object
-      const qrCodeDataURL = await QRCode.toDataURL(text, {
-        width: size,
-        color: {
-          dark: color, // QR code color
-          light: bgColor // Background color
-        }
-      })
-      setQrCodeSrc(qrCodeDataURL)
-    } catch (error) {
-      console.error('Error generating QR code:', error)
-    }
-  }
-
   const downloadQRCode = () => {
+    const svgElement = document.getElementById('qr-code-svg')
+    if (!svgElement) return
+
+    const svgData = new XMLSerializer().serializeToString(svgElement)
+    const blob = new Blob([svgData], { type: 'image/svg+xml' })
     const downloadLink = document.createElement('a')
-    downloadLink.href = qrCodeSrc
-    downloadLink.download = 'qrcode.png'
+    downloadLink.href = URL.createObjectURL(blob)
+    downloadLink.download = 'qrcode.svg'
     document.body.appendChild(downloadLink)
     downloadLink.click()
     document.body.removeChild(downloadLink)
@@ -76,13 +60,16 @@ export default function QRCodeGenerator() {
           <div className="flex flex-col lg:flex-row gap-6">
             <div className="flex-1 flex flex-col justify-center items-center p-4 bg-gray-50 rounded-lg transition-all duration-300 ease-in-out hover:shadow-md">
               <h2 className="text-2xl font-bold text-center text-gray-800 mb-4">QR Code Generator</h2>
-              {qrCodeSrc && (
-                <img
-                  src={qrCodeSrc}
-                  alt="QR Code"
-                  className="transition-all duration-300 ease-in-out hover:scale-105"
-                  style={{ width: `${size}px`, height: `${size}px` }}
-                />
+              {text && (
+                <div id="qr-code-svg" className="transition-all duration-300 ease-in-out hover:scale-105">
+                  <ReactQRCode
+                    value={text}
+                    size={size}
+                    fgColor={color}  // QR Code color
+                    bgColor={bgColor} // Background color
+                    style={{ width: `${size}px`, height: `${size}px` }}
+                  />
+                </div>
               )}
               <div className="mt-4 flex gap-4">
                 <Button onClick={downloadQRCode} className="bg-blue-500 hover:bg-blue-600 text-white">
