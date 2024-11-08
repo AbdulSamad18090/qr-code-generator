@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent } from "@/components/ui/card"
 import { Slider } from "@/components/ui/slider"
 import { Download, Share2, Link, Maximize2 } from 'lucide-react'
+import html2canvas from 'html2canvas'  // Import html2canvas
 
 export default function QRCodeGenerator() {
   const [text, setText] = useState('')
@@ -23,17 +24,18 @@ export default function QRCodeGenerator() {
   }, [])
 
   const downloadQRCode = () => {
-    const svgElement = document.getElementById('qr-code-svg')
-    if (!svgElement) return
+    const qrCodeElement = document.getElementById('qr-code-svg')
+    if (!qrCodeElement) return
 
-    const svgData = new XMLSerializer().serializeToString(svgElement)
-    const blob = new Blob([svgData], { type: 'image/svg+xml' })
-    const downloadLink = document.createElement('a')
-    downloadLink.href = URL.createObjectURL(blob)
-    downloadLink.download = 'qrcode.svg'
-    document.body.appendChild(downloadLink)
-    downloadLink.click()
-    document.body.removeChild(downloadLink)
+    html2canvas(qrCodeElement).then(canvas => {
+      const image = canvas.toDataURL('image/png')
+      const downloadLink = document.createElement('a')
+      downloadLink.href = image
+      downloadLink.download = 'qrcode.png'
+      document.body.appendChild(downloadLink)
+      downloadLink.click()
+      document.body.removeChild(downloadLink)
+    })
   }
 
   const shareQRCode = async () => {
@@ -73,7 +75,7 @@ export default function QRCodeGenerator() {
               )}
               <div className="mt-4 flex gap-4">
                 <Button onClick={downloadQRCode} className="bg-blue-500 hover:bg-blue-600 text-white">
-                  <Download className="mr-2 h-4 w-4" /> Download
+                  <Download className="mr-2 h-4 w-4" /> Download PNG
                 </Button>
                 <Button onClick={shareQRCode} className="bg-indigo-500 hover:bg-indigo-600 text-white">
                   <Share2 className="mr-2 h-4 w-4" /> Share
