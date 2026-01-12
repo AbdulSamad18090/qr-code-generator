@@ -8,13 +8,15 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent } from "@/components/ui/card"
 import { Slider } from "@/components/ui/slider"
 import { Download, Share2, Link, Maximize2 } from 'lucide-react'
-import html2canvas from 'html2canvas'  // Import html2canvas
+import html2canvas from 'html2canvas'
+import ShareDialog from '@/components/share-dialog'
 
 export default function QRCodeGenerator() {
   const [text, setText] = useState('')
   const [size, setSize] = useState(256)
   const [color, setColor] = useState('#000000')
   const [bgColor, setBgColor] = useState('#ffffff')
+  const [isShareDialogOpen, setIsShareDialogOpen] = useState(false)
 
   useEffect(() => {
     document.body.style.backgroundColor = '#f0f0f0'
@@ -38,21 +40,12 @@ export default function QRCodeGenerator() {
     })
   }
 
-  const shareQRCode = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: 'QR Code',
-          text: 'Check out this QR Code',
-          url: text
-        })
-      } catch (error) {
-        console.error('Error sharing:', error)
-      }
-    } else {
-      await navigator.clipboard.writeText(text)
-      alert('Text copied to clipboard!')
+  const openShareDialog = () => {
+    if (!text) {
+      alert('Please enter text or URL first')
+      return
     }
+    setIsShareDialogOpen(true)
   }
 
   return (
@@ -67,8 +60,8 @@ export default function QRCodeGenerator() {
                   <ReactQRCode
                     value={text}
                     size={size}
-                    fgColor={color}  // QR Code color
-                    bgColor={bgColor} // Background color
+                    fgColor={color}
+                    bgColor={bgColor}
                     style={{ width: `${size}px`, height: `${size}px` }}
                   />
                 </div>
@@ -77,7 +70,7 @@ export default function QRCodeGenerator() {
                 <Button onClick={downloadQRCode} className="bg-blue-500 hover:bg-blue-600 text-white">
                   <Download className="mr-2 h-4 w-4" /> Download PNG
                 </Button>
-                <Button onClick={shareQRCode} className="bg-indigo-500 hover:bg-indigo-600 text-white">
+                <Button onClick={openShareDialog} className="bg-indigo-500 hover:bg-indigo-600 text-white">
                   <Share2 className="mr-2 h-4 w-4" /> Share
                 </Button>
               </div>
@@ -154,6 +147,12 @@ export default function QRCodeGenerator() {
           </div>
         </CardContent>
       </Card>
+
+      <ShareDialog
+        isOpen={isShareDialogOpen}
+        onClose={() => setIsShareDialogOpen(false)}
+        qrData={{ text, size, color, bgColor }}
+      />
     </div>
   )
 }
