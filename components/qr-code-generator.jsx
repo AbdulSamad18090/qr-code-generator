@@ -7,14 +7,24 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent } from "@/components/ui/card"
 import { Slider } from "@/components/ui/slider"
-import { Download, Share2, Link, Maximize2 } from 'lucide-react'
-import html2canvas from 'html2canvas'  // Import html2canvas
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Download, Share2, Link, Maximize2, Copy, Check, MessageCircle, ExternalLink } from 'lucide-react'
+import html2canvas from 'html2canvas'
 
 export default function QRCodeGenerator() {
   const [text, setText] = useState('')
   const [size, setSize] = useState(256)
   const [color, setColor] = useState('#000000')
   const [bgColor, setBgColor] = useState('#ffffff')
+  const [shareDialogOpen, setShareDialogOpen] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const [shareError, setShareError] = useState(null)
 
   useEffect(() => {
     document.body.style.backgroundColor = '#f0f0f0'
@@ -22,6 +32,72 @@ export default function QRCodeGenerator() {
       document.body.style.backgroundColor = ''
     }
   }, [])
+
+  const generateShareUrl = () => {
+    if (!text) return null
+
+    try {
+      const qrData = {
+        text,
+        size,
+        color,
+        bgColor
+      }
+      const encodedData = btoa(encodeURIComponent(JSON.stringify(qrData)))
+      const baseUrl = typeof window !== 'undefined' ? window.location.origin : ''
+      return baseUrl + '/share?data=' + encodedData
+    } catch (error) {
+      console.error('Error generating share URL:', error)
+      return null
+    }
+  }
+
+  const copyShareLink = async () => {
+    const shareUrl = generateShareUrl()
+    if (!shareUrl) {
+      setShareError('Please enter text or URL first')
+      return
+    }
+
+    try {
+      await navigator.clipboard.writeText(shareUrl)
+      setCopied(true)
+      setShareError(null)
+      setTimeout(() => setCopied(false), 2000)
+    } catch (error) {
+      setShareError('Failed to copy link. Please try again.')
+      console.error('Copy error:', error)
+    }
+  }
+
+  const shareViaWhatsApp = () => {
+    const shareUrl = generateShareUrl()
+    if (!shareUrl) {
+      setShareError('Please enter text or URL first')
+      return
+    }
+
+    try {
+      const message = encodeURIComponent('Check out this QR Code: ' + shareUrl)
+      const whatsappUrl = 'https://wa.me/?text=' + message
+      window.open(whatsappUrl, '_blank')
+      setShareError(null)
+    } catch (error) {
+      setShareError('Failed to open WhatsApp. Please try again.')
+      console.error('WhatsApp share error:', error)
+    }
+  }
+
+  const openShareLink = () => {
+    const shareUrl = generateShareUrl()
+    if (!shareUrl) {
+      setShareError('Please enter text or URL first')
+      return
+    }
+
+    window.open(shareUrl, '_blank')
+    setShareError(null)
+  }
 
   const downloadQRCode = () => {
     const qrCodeElement = document.getElementById('qr-code-svg')
@@ -38,21 +114,13 @@ export default function QRCodeGenerator() {
     })
   }
 
-  const shareQRCode = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: 'QR Code',
-          text: 'Check out this QR Code',
-          url: text
-        })
-      } catch (error) {
-        console.error('Error sharing:', error)
-      }
-    } else {
-      await navigator.clipboard.writeText(text)
-      alert('Text copied to clipboard!')
+  const shareQRCode = () => {
+    if (!text) {
+      setShareError('Please enter text or URL first')
+      return
     }
+    setShareError(null)
+    setShareDialogOpen(true)
   }
 
   return (
@@ -67,11 +135,14 @@ export default function QRCodeGenerator() {
                   <ReactQRCode
                     value={text}
                     size={size}
-                    fgColor={color}  // QR Code color
-                    bgColor={bgColor} // Background color
-                    style={{ width: `${size}px`, height: `${size}px` }}
+                    fgColor={color}
+                    bgColor={bgColor}
+                    style={{ width: size + 'px', height: size + 'px' }}
                   />
                 </div>
+              )}
+              {shareError && !shareDialogOpen && (
+                <p className="text-sm text-red-500 mt-2">{shareError}</p>
               )}
               <div className="mt-4 flex gap-4">
                 <Button onClick={downloadQRCode} className="bg-blue-500 hover:bg-blue-600 text-white">
@@ -154,6 +225,72 @@ export default function QRCodeGenerator() {
           </div>
         </CardContent>
       </Card>
+
+      <Dialog open={shareDialogOpen} onOpenChange={setShareDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Share QR Code</DialogTitle>
+            <DialogDescription>
+              Share your QR code via a public link or directly on WhatsApp.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 mt-4">
+            {shareError && (
+              <p className="text-sm text-red-500 text-center">{shareError}</p>
+            )}
+
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-gray-700">Public Link</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  readOnly
+                  value={generateShareUrl() || ''}
+                  className="flex-1 text-sm"
+                  placeholder="Generate QR code first"
+                />
+                <Button
+                  onClick={copyShareLink}
+                  variant="outline"
+                  size="icon"
+                  className="shrink-0"
+                >
+                  {copied ? (
+                    <Check className="h-4 w-4 text-green-500" />
+                  ) : (
+                    <Copy className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+              {copied && (
+                <p className="text-sm text-green-600">Link copied to clipboard!</p>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-3">
+              <Button
+                onClick={openShareLink}
+                variant="outline"
+                className="w-full justify-start"
+              >
+                <ExternalLink className="mr-2 h-4 w-4" />
+                Open Public Link
+              </Button>
+
+              <Button
+                onClick={shareViaWhatsApp}
+                className="w-full justify-start bg-green-500 hover:bg-green-600 text-white"
+              >
+                <MessageCircle className="mr-2 h-4 w-4" />
+                Share via WhatsApp
+              </Button>
+            </div>
+
+            <p className="text-xs text-gray-500 text-center mt-2">
+              The public link allows anyone to view and download this QR code without authentication.
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
