@@ -7,8 +7,9 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent } from "@/components/ui/card"
 import { Slider } from "@/components/ui/slider"
-import { Download, Share2, Link, Maximize2 } from 'lucide-react'
-import html2canvas from 'html2canvas'  // Import html2canvas
+import { Download, Link, Maximize2 } from 'lucide-react'
+import { ShareModal } from "@/components/share-modal"
+import html2canvas from 'html2canvas'
 
 export default function QRCodeGenerator() {
   const [text, setText] = useState('')
@@ -38,23 +39,6 @@ export default function QRCodeGenerator() {
     })
   }
 
-  const shareQRCode = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: 'QR Code',
-          text: 'Check out this QR Code',
-          url: text
-        })
-      } catch (error) {
-        console.error('Error sharing:', error)
-      }
-    } else {
-      await navigator.clipboard.writeText(text)
-      alert('Text copied to clipboard!')
-    }
-  }
-
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-blue-50 to-indigo-100">
       <Card className="w-full max-w-5xl mx-auto overflow-hidden shadow-lg">
@@ -67,19 +51,27 @@ export default function QRCodeGenerator() {
                   <ReactQRCode
                     value={text}
                     size={size}
-                    fgColor={color}  // QR Code color
-                    bgColor={bgColor} // Background color
+                    fgColor={color}
+                    bgColor={bgColor}
                     style={{ width: `${size}px`, height: `${size}px` }}
                   />
                 </div>
               )}
               <div className="mt-4 flex gap-4">
-                <Button onClick={downloadQRCode} className="bg-blue-500 hover:bg-blue-600 text-white">
+                <Button
+                  onClick={downloadQRCode}
+                  disabled={!text}
+                  className="bg-blue-500 hover:bg-blue-600 text-white"
+                >
                   <Download className="mr-2 h-4 w-4" /> Download PNG
                 </Button>
-                <Button onClick={shareQRCode} className="bg-indigo-500 hover:bg-indigo-600 text-white">
-                  <Share2 className="mr-2 h-4 w-4" /> Share
-                </Button>
+                <ShareModal
+                  text={text}
+                  size={size}
+                  color={color}
+                  bgColor={bgColor}
+                  disabled={!text}
+                />
               </div>
             </div>
             <div className="flex-1 space-y-6">
